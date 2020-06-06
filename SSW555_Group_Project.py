@@ -29,6 +29,7 @@ class GedcomFile:
 
         for line in self._input:
             line: List[str] = line.split()
+            if len(line) == 0: continue
             level: str = line[0]
             tag: str = line[1]
             arguments: str = f'{" ".join(line[2:])}'
