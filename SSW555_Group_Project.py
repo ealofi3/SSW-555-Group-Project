@@ -28,7 +28,7 @@ class indiv:
         self.child = "TBD"
         self.spouse = "TBD"
         self.famc = "NA"
-        self.fams = "NA"  
+        self.fams = list()  
 
     def return_list(self):
         return [self.name, self.sex, self.birth, self.age, self.living, self.death_date, self.child, self.spouse, self.famc, self.fams]
@@ -190,7 +190,7 @@ class GedcomFile:
                 elif "FAMC" in self._validated_list[index][1]:
                     person.famc = self._validated_list[index][2]
                 elif "FAMS" in self._validated_list[index][1]:
-                    person.fams = self._validated_list[index][2]     
+                    person.fams.append(self._validated_list[index][2])     
 
 
 def main() -> None:
@@ -216,7 +216,7 @@ def main() -> None:
         print(entry)
 
     for entry in gedcom._Indiv_dt:
-        print(gedcom._Indiv_dt[entry])
+        print(entry, ": ", gedcom._Indiv_dt[entry])
     
 if __name__ == '__main__':
     main()
