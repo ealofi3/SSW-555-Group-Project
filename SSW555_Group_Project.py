@@ -9,12 +9,12 @@ class family:
     def __init__(self, id):
         self.id = id
         self.married = False
-        self.marriage_date = datetime.date(1,1,1)
+        self.marriage_date = str()
         self.husband_id = str()
         self.wife_id = str()
         self.children = list()
         self.divorced = False
-        self.divorce_date = datetime.date(1,1,1)
+        self.divorce_date = str()
 
 class indiv:
     def __init__(self, id):
@@ -26,14 +26,11 @@ class indiv:
         self.age = "TBD"
         self.living = True
         self.death_date = "NA"
-        self.child = "TBD"
-        self.spouse = "TBD"
+        self.child = str()
+        self.spouse = str()
         self.famc = "NA"
-        self.fams = list()  
-
-    def return_list(self):
-        return [self.name, self.sex, self.birth, self.age, self.living, self.death_date, self.child, self.spouse, self.famc, self.fams]
-
+        self.fams = list() 
+        self.ex_spouses = list()
 
     def setAge(self): 
         if self.living:
@@ -49,10 +46,8 @@ class GedcomFile:
                                 'FAMS' : '1', 'FAM' : '0', 'MARR' : '1', 'HUSB' : '1', 'WIFE' : '1', 'CHIL' : '1', 
                                 'DIV' : '1', 'DATE' : '2', 'HEAD' : '0', 'TRLR' : '0', 'NOTE' : '0', } #key = tag : value = level
     
-    
-    # list has following format: [name,sex,birth,age.living,death,child,spouse,famc,fams]
-    _Indiv_dt: Dict[str, list] = dict()
-    _Family_dt: Dict[str, list] = dict()
+    _Individual_dt: Dict[str, indiv] = dict()
+    _Family_dt: Dict[str, family] = dict()
 
     def __init__(self) -> None:
         '''Sets containers to store the input and output lines'''
@@ -72,7 +67,6 @@ class GedcomFile:
     
     def validate_tags_for_output(self) -> None:
         '''Takes each line in the self._input list container, splits it, and determines whether tags are valid'''
-        #print(self._input)
         for line in self._input:
             #skip blank lines
             if len(line) == 0:
@@ -125,9 +119,7 @@ class GedcomFile:
             level = int(level[-1])
             if validity == 'Y':
                 self._validated_list.append([level, tag, arg])
-                
-        #for entry in self._validated_list:
-        #    print(entry)
+
 
     def convert_gedcom_date_to_datetime(date_str):
         day, month, year = date_str.split(" ")
@@ -146,19 +138,12 @@ class GedcomFile:
         
         for index in range (0, len(self._validated_list)):
 
-          
-            #print(self._validated_list[index][0])
             if self._validated_list[index][0] == 0:
                 if indi_record == True:
                    # OK, we've finished processing the individual. Find relational information
                    indi_record = False
                    person.setAge()
-                   
-                   #print("person: ",person.id)
-                   #print("person_return_list :", person.return_list())
-                   self._Indiv_dt.update({id : person.return_list()})
-                   #for entry in GedcomFile._Indiv_dt:
-                   #print(GedcomFile._Indiv_dt)                   
+                   self._Individual_dt.update({id : person})               
 
                 if "INDI" in self._validated_list[index][1] and indi_record == False:
                     # OK, we're now processing an Individual.
@@ -195,22 +180,159 @@ class GedcomFile:
                     person.fams.append(self._validated_list[index][2])     
 
     def print_individuals_pretty(self) -> None:
-        x = PrettyTable()
-        x.field_names = ["ID", "Name", "Gender", "Birthday", "Age", "Alive", "Death", "Child"]
+
+        indiv_ptbl = PrettyTable()
+        indiv_ptbl.field_names = ["ID", "Name", "Gender", "Birthday", "Age", "Alive", "Death", "Child", "Spouse", "Ex-Spouses"]
         
-        for entry in self._Indiv_dt:
+        for entry in self._Individual_dt:
+            
+            ex_spouses = ""
+            for ex in self._Individual_dt[entry].ex_spouses:
+                ex_spouses=ex_spouses + ex + ","
+            # remove last comma             
+            ex_spouses = ex_spouses[0:-1]  
+
             temp_list = [
                    entry,                    # ID 
-                   self._Indiv_dt[entry][0], # Name
-                   self._Indiv_dt[entry][1], # Gender
-                   self._Indiv_dt[entry][2], # Birthday
-                   self._Indiv_dt[entry][3], # Age
-                   self._Indiv_dt[entry][4], # Alive
-                   self._Indiv_dt[entry][5], # Death
-                   self._Indiv_dt[entry][6]] # Child
+                   self._Individual_dt[entry].name, 
+                   self._Individual_dt[entry].sex, 
+                   self._Individual_dt[entry].birth, 
+                   self._Individual_dt[entry].age, 
+                   self._Individual_dt[entry].living,
+                   self._Individual_dt[entry].death_date,
+                   self._Individual_dt[entry].child, 
+                   self._Individual_dt[entry].spouse,
+                   ex_spouses]
                    
-            x.add_row(temp_list)
-        print(x)
+            indiv_ptbl.add_row(temp_list)
+        print(indiv_ptbl)
+
+
+
+
+
+    def record_families(self) -> None:
+        # Flags indicating that we're in the middle of a higher-level record.
+        family_record = False
+        divorce_record = False
+        marriage_record = False
+        
+        for index in range (0, len(self._validated_list)):
+        
+            if self._validated_list[index][0] == 0:
+                if family_record == True:
+                   # OK, we've finished processing the family. Find relational information
+                   family_record = False
+                   self._Family_dt.update({id : fam})
+             
+                if self._validated_list[index][1] == "FAM" and family_record == False:
+                    # OK, we're now processing a Family.
+                    family_record = True
+                    
+                    # Grab the ID and default everything else.
+                    id = self._validated_list[index][2]
+                    fam = family(id)
+            
+            if family_record == True:
+                if divorce_record:
+                    if "DATE" in self._validated_list[index][1]:
+                        date = self._validated_list[index][2]
+                        fam.divorced = True
+                        fam.divorce_date = GedcomFile.convert_gedcom_date_to_datetime(date)
+                        divorce_record=False
+                elif marriage_record:
+                    if "DATE" in self._validated_list[index][1]:
+                        date = self._validated_list[index][2]
+                        fam.married = True
+                        fam.marriage_date = GedcomFile.convert_gedcom_date_to_datetime(date)
+                        marriage_record=False
+    
+                if "HUSB" in self._validated_list[index][1]:
+                    fam.husband_id = self._validated_list[index][2]
+                elif "WIFE" in self._validated_list[index][1]:
+                    fam.wife_id = self._validated_list[index][2]
+                elif "CHIL" in self._validated_list[index][1]:
+                    fam.children.append(self._validated_list[index][2])
+                elif "MARR" in self._validated_list[index][1]:
+                    marriage_record=True
+                elif "DIV" in self._validated_list[index][1]:
+                    divorce_record = True
+
+
+    def print_families_pretty(self) -> None:
+        family_ptbl = PrettyTable()
+        family_ptbl.field_names = ["ID", "Married", "Divorced", "Husband ID", "Husband Name", "Wife ID", "Wife Name", "Children"]
+                
+        for entry in self._Family_dt:
+            children = ""
+            
+            for child in self._Family_dt[entry].children:
+                children=children + child + ","
+             
+            # remove last comma             
+            children = children[0:-1]    
+                
+            husband_id = self._Family_dt[entry].husband_id
+            try:
+                husband_name = self._Individual_dt[husband_id].name
+            except KeyError:
+                husband_name = "Unknown"
+
+            wife_id =    self._Family_dt[entry].wife_id
+            try:
+                wife_name = self._Individual_dt[wife_id].name                    
+            except KeyError:
+                wife_name = "Unknown"
+                
+            temp_list = [
+                   entry,                     
+                   self._Family_dt[entry].marriage_date,
+                   self._Family_dt[entry].divorce_date,
+                   husband_id,                # Husband ID
+                   husband_name,              # Husband Name
+                   wife_id,                   # Wife ID
+                   wife_name,                 # Wife Name
+                   children]                  # Children
+
+            family_ptbl.add_row(temp_list)
+
+        print(family_ptbl)        
+        
+       
+    def update_individual_child_references(self) -> None:
+        for familyID in self._Family_dt:
+            for childID in self._Family_dt[familyID].children:
+                try:
+                    self._Individual_dt[childID].child = familyID
+                except KeyError:
+                    continue        
+        
+    def update_individual_spouse_references(self) -> None:
+
+        for familyID in self._Family_dt:
+            husbID = self._Family_dt[familyID].husband_id
+            wifeID = self._Family_dt[familyID].wife_id
+            
+            if not self._Family_dt[familyID].divorced:
+                # OK, these are current marriages
+                try:
+                    self._Individual_dt[husbID].spouse = wifeID
+                except KeyError:
+                    continue
+                try:
+                    self._Individual_dt[wifeID].spouse = husbID 
+                except KeyError:
+                    continue
+            else:
+                # These marriages ended in divorce
+                try:
+                    self._Individual_dt[husbID].ex_spouses.append(wifeID)
+                except KeyError:
+                    continue
+                try:
+                    self._Individual_dt[wifeID].ex_spouses.append(husbID) 
+                except KeyError:
+                    continue                
 
 
 
@@ -230,20 +352,25 @@ def main() -> None:
     
     gedcom.update_validated_list()
     gedcom.record_individuals()
+    gedcom.record_families()
     
-    #TBD: Record families
-    #TBD: need to update individuals with family data. 
+    gedcom.update_individual_child_references()
+    gedcom.update_individual_spouse_references() 
     
     gedcom.print_individuals_pretty()
-    
+    gedcom.print_families_pretty()
+
 '''
-    # DEBUG
+    # DEBUG - uncomment to print out lists/dictionaries for debugging.
     for entry in gedcom._validated_list:
         print(entry)
-
-    for entry in gedcom._Indiv_dt:
-        print(entry, ": ", gedcom._Indiv_dt[entry])
-'''   
+    
+    for entry in gedcom._Family_dt:
+        print(entry, ": ", gedcom._Family_dt[entry])    
+        
+    for entry in gedcom._Individual_dt:
+        print(entry, ": ", gedcom._Individual_dt[entry])
+'''
 
 if __name__ == '__main__':
     main()
