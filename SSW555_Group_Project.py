@@ -9,12 +9,16 @@ class family:
     def __init__(self, id):
         self.id = id
         self.married = False
-        self.marriage_date = datetime.date(1,1,1)
+        self.marriage_date = str()
         self.husband_id = str()
         self.wife_id = str()
         self.children = list()
         self.divorced = False
-        self.divorce_date = datetime.date(1,1,1)
+        self.divorce_date = str()
+
+    def return_list(self):
+        return [self.id, self.married, self.marriage_date, self.husband_id, self.wife_id, self.children, self.divorced, self.divorce_date]
+
 
 class indiv:
     def __init__(self, id):
@@ -26,13 +30,14 @@ class indiv:
         self.age = "TBD"
         self.living = True
         self.death_date = "NA"
-        self.child = "TBD"
-        self.spouse = "TBD"
+        self.child = str()
+        self.spouse = str()
         self.famc = "NA"
-        self.fams = list()  
+        self.fams = list() 
+        self.ex_spouses = list()
 
     def return_list(self):
-        return [self.name, self.sex, self.birth, self.age, self.living, self.death_date, self.child, self.spouse, self.famc, self.fams]
+        return [self.name, self.sex, self.birth, self.age, self.living, self.death_date, self.child, self.spouse, self.famc, self.fams, self.ex_spouses]
 
 
     def setAge(self): 
@@ -196,9 +201,16 @@ class GedcomFile:
 
     def print_individuals_pretty(self) -> None:
         x = PrettyTable()
-        x.field_names = ["ID", "Name", "Gender", "Birthday", "Age", "Alive", "Death", "Child"]
+        x.field_names = ["ID", "Name", "Gender", "Birthday", "Age", "Alive", "Death", "Child", "Spouse", "Ex-Spouses"]
         
         for entry in self._Indiv_dt:
+            
+            ex_spouses = ""
+            for ex in self._Indiv_dt[entry][10]:
+                ex_spouses=ex_spouses + ex + ","
+            # remove last comma             
+            ex_spouses = ex_spouses[0:-1]  
+
             temp_list = [
                    entry,                    # ID 
                    self._Indiv_dt[entry][0], # Name
@@ -207,10 +219,143 @@ class GedcomFile:
                    self._Indiv_dt[entry][3], # Age
                    self._Indiv_dt[entry][4], # Alive
                    self._Indiv_dt[entry][5], # Death
-                   self._Indiv_dt[entry][6]] # Child
-                   
+                   self._Indiv_dt[entry][6], # Child
+                   self._Indiv_dt[entry][7], # Spouse
+                   ex_spouses]               # Exes
+            #print(type(temp_list))
             x.add_row(temp_list)
         print(x)
+
+
+    def record_families(self) -> None:
+        # Flags indicating that we're in the middle of a higher-level record.
+        family_record = False
+        divorce_record = False
+        marriage_record = False
+        
+        for index in range (0, len(self._validated_list)):
+
+            #print(self._validated_list[index][0])
+            if self._validated_list[index][0] == 0:
+                if family_record == True:
+                   # OK, we've finished processing the family. Find relational information
+                   family_record = False
+
+                   self._Family_dt.update({id : fam.return_list()})
+                   #self._Indiv_dt.update({id : person.return_list()})
+             
+                if self._validated_list[index][1] == "FAM" and family_record == False:
+                    # OK, we're now processing a Family.
+                    family_record = True
+                    
+                    # Grab the ID and default everything else.
+                    id = self._validated_list[index][2]
+                    fam = family(id)
+            
+            if family_record == True:
+                if divorce_record:
+                    if "DATE" in self._validated_list[index][1]:
+                        date = self._validated_list[index][2]
+                        fam.divorced = True
+                        fam.divorce_date = GedcomFile.convert_gedcom_date_to_datetime(date)
+                        divorce_record=False
+                elif marriage_record:
+                    if "DATE" in self._validated_list[index][1]:
+                        date = self._validated_list[index][2]
+                        fam.married = True
+                        fam.marriage_date = GedcomFile.convert_gedcom_date_to_datetime(date)
+                        marriage_record=False
+    
+                if "HUSB" in self._validated_list[index][1]:
+                    fam.husband_id = self._validated_list[index][2]
+                elif "WIFE" in self._validated_list[index][1]:
+                    fam.wife_id = self._validated_list[index][2]
+                elif "CHIL" in self._validated_list[index][1]:
+                    fam.children.append(self._validated_list[index][2])
+                elif "MARR" in self._validated_list[index][1]:
+                    marriage_record=True
+                elif "DIV" in self._validated_list[index][1]:
+                    divorce_record = True
+
+
+    def print_families_pretty(self) -> None:
+        x = PrettyTable()
+        x.field_names = ["ID", "Married", "Divorced", "Husband ID", "Husband Name", "Wife ID", "Wife Name", "Children"]
+                
+        for entry in self._Family_dt:
+            children = ""
+            
+            for child in self._Family_dt[entry][5]:
+                children=children + child + ","
+             
+            # remove last comma             
+            children = children[0:-1]    
+                
+            husband_id = self._Family_dt[entry][3]
+            try:
+                husband_name = self._Indiv_dt[husband_id][0]
+            except KeyError:
+                husband_name = "Unknown"
+
+            wife_id =    self._Family_dt[entry][4]
+            try:
+                wife_name = self._Indiv_dt[wife_id][0]                    
+            except KeyError:
+                wife_name = "Unknown"
+                
+            temp_list = [
+                   entry,                     # ID 
+                   self._Family_dt[entry][2], # Married
+                   self._Family_dt[entry][7], # Divorced
+                   husband_id,                # Husband ID
+                   husband_name,              # Husband Name
+                   wife_id,                   # Wife ID
+                   wife_name,                 # Wife Name
+                   children]                  # Children
+
+            x.add_row(temp_list)
+
+        print(x)
+      
+
+    def update_individual_child_references(self) -> None:
+        for familyID in self._Family_dt:
+            for childID in self._Family_dt[familyID][5]:
+                try:
+                    self._Indiv_dt[childID][6] = familyID
+                except KeyError:
+                    continue
+
+
+    def update_individual_spouse_references(self) -> None:
+
+        for familyID in self._Family_dt:
+            husbID = self._Family_dt[familyID][3]
+            wifeID = self._Family_dt[familyID][4]
+            
+            if not self._Family_dt[familyID][6]:
+                # OK, these are current marriages
+                try:
+                    self._Indiv_dt[husbID][7] = wifeID
+                except KeyError:
+                    continue
+                try:
+                    self._Indiv_dt[wifeID][7] = husbID 
+                except KeyError:
+                    continue
+            else:
+                # These marriages ended in divorce
+                try:
+                    self._Indiv_dt[husbID][10].append(wifeID)
+                except KeyError:
+                    continue
+                try:
+                    self._Indiv_dt[wifeID][10].append(husbID) 
+                except KeyError:
+                    continue
+        
+        
+                
 
 
 
@@ -230,20 +375,25 @@ def main() -> None:
     
     gedcom.update_validated_list()
     gedcom.record_individuals()
+    gedcom.record_families()
     
-    #TBD: Record families
-    #TBD: need to update individuals with family data. 
+    gedcom.update_individual_child_references()
+    gedcom.update_individual_spouse_references() 
     
     gedcom.print_individuals_pretty()
-    
+    gedcom.print_families_pretty()
+
 '''
     # DEBUG
     for entry in gedcom._validated_list:
         print(entry)
-
+    
+    for entry in gedcom._Family_dt:
+        print(entry, ": ", gedcom._Family_dt[entry])    
+        
     for entry in gedcom._Indiv_dt:
         print(entry, ": ", gedcom._Indiv_dt[entry])
-'''   
+'''
 
 if __name__ == '__main__':
     main()
