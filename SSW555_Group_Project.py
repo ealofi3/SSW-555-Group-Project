@@ -35,7 +35,7 @@ class indiv:
 
     def setAge(self): 
         if self.living:
-            today = datetime.datetime.now()
+            today = datetime.date.today()
         else:
             today = self.death_date
         self.age = (today - self.birth).days//365  #TBD: Not perfect. leap years, etc.
@@ -70,8 +70,11 @@ class GedcomFile:
     
     def validate_tags_for_output(self) -> None:
         '''Takes each line in the self._input list container, splits it, and determines whether tags are valid'''
-
+        #print(self._input)
         for line in self._input:
+            #skip blank lines
+            if len(line) == 0:
+                continue
             line: List[str] = line.split()
             level: str = line[0]
             tag: str = line[1]
@@ -140,27 +143,30 @@ class GedcomFile:
         family_record = False
         
         for index in range (0, len(self._validated_list)):
-            if "INDI" in self._validated_list[index][1]:
-                # OK, we're now processing an Individual.
-                indi_record = True
-                
-                # Grab the ID and default everything else.
-                id = self._validated_list[index][2]
-                person = indiv(id)
 
-                continue
-            
-            if indi_record == True:
-                if self._validated_list[index][0] == 0:
+          
+            #print(self._validated_list[index][0])
+            if self._validated_list[index][0] == 0:
+                if indi_record == True:
                    # OK, we've finished processing the individual. Find relational information
                    indi_record = False
-                   
                    person.setAge()
                    
-                   #GedcomFile._Indiv_dt.update({id : [name,sex,birth,age.living,death,child,spouse,famc,fams]})
-                   GedcomFile._Indiv_dt.update({id : person.return_list()})                   
-                   continue
+                   #print("person: ",person.id)
+                   #print("person_return_list :", person.return_list())
+                   self._Indiv_dt.update({id : person.return_list()})
+                   #for entry in GedcomFile._Indiv_dt:
+                   #print(GedcomFile._Indiv_dt)                   
 
+                if "INDI" in self._validated_list[index][1] and indi_record == False:
+                    # OK, we're now processing an Individual.
+                    indi_record = True
+                    
+                    # Grab the ID and default everything else.
+                    id = self._validated_list[index][2]
+                    person = indiv(id)
+            
+            if indi_record == True:
                 if birth_record:
                     if "DATE" in self._validated_list[index][1]:
                         date = self._validated_list[index][2]
@@ -184,29 +190,33 @@ class GedcomFile:
                 elif "FAMC" in self._validated_list[index][1]:
                     person.famc = self._validated_list[index][2]
                 elif "FAMS" in self._validated_list[index][1]:
-                    person.fams = self._validated_list[index][2]
-                
-        #print("----------------------------------------")
-        print(GedcomFile._Indiv_dt)     
-
-
+                    person.fams = self._validated_list[index][2]     
 
 
 def main() -> None:
     '''Creates an output file'''
 
     file_name: str = input('Enter GEDCOM file name: ')
-    #file_name: str = "proj02test.ged"
+    #file_name: str = "p1.ged"
     output_file_name: str = input('Enter desired name for the output file: ')
-    #output_file_name: str = "proj02test.output"
+    #output_file_name: str = "p1.output"
     
     gedcom: GedcomFile = GedcomFile()
     gedcom.read_file(file_name)
     gedcom.validate_tags_for_output()
     gedcom.write_to_txt_file(output_file_name)
-
     print('Done. Your output file has been created.')
+    
     gedcom.update_validated_list()
     gedcom.record_individuals()
+    
+    
+    # DEBUG
+    for entry in gedcom._validated_list:
+        print(entry)
+
+    for entry in gedcom._Indiv_dt:
+        print(gedcom._Indiv_dt[entry])
+    
 if __name__ == '__main__':
     main()
