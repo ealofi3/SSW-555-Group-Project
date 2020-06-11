@@ -171,8 +171,7 @@ class GedcomFile:
 
         self._input: List[str] = list()
         self._output: List[str] = list()
-        self._validated_list: List[str] = list()
-        self._preceeding_tag : str = str()        
+        self._validated_list: List[str] = list()        
 
     def read_file(self, file_name: str) -> None:
         '''Reads a GEDCOM file and populates the self._input list container with the lines from the GEDCOM file'''
@@ -260,7 +259,7 @@ class GedcomFile:
             if tag == "INDI":
                 # Subsequent records will define an individual
                 individual_record = True
-                family = False
+                family_record = False
                 
                 # Since this is the start - Create the Individual!
                 individual: Individual = Individual()
