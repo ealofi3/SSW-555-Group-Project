@@ -83,7 +83,7 @@ class Individual:
         self.birth: str = ''
         self.age: str = ''
         self.living: str = True
-        self.death_date: str = ''
+        self.death_date: str = 'NA'
         # self.child = "TBD"
         # self.spouse = "TBD"
         self.famc: Set[str] = set()
@@ -134,7 +134,7 @@ class Individual:
         elif self.preceding_tag_related_to_date == 'DEAT':
             self.death_date = date_in_final_format
             self.living = False
-
+        #print(self.name)
         self.setAge()
 
     def setAge(self): 
@@ -144,8 +144,11 @@ class Individual:
             today = datetime.date.today()
         else:
             today = self.death_date
-
+        #print("Birthdate: ", self.birth)
+        #print("Deathdate: ", self.death_date)
+        #print("today :", today)
         self.age = (today - self.birth).days//365  #TBD: Not perfect. leap years, etc.
+        #print("Age: ",self.age)
 
     def return_pretty_table_row(self) -> List[str]:
         '''Returns a list that is to be used as a row for the individuals pretty table'''
@@ -168,7 +171,8 @@ class GedcomFile:
 
         self._input: List[str] = list()
         self._output: List[str] = list()
-        self._validated_list: List[str] = list()        
+        self._validated_list: List[str] = list()
+        self._preceeding_tag : str = str()        
 
     def read_file(self, file_name: str) -> None:
         '''Reads a GEDCOM file and populates the self._input list container with the lines from the GEDCOM file'''
@@ -234,89 +238,55 @@ class GedcomFile:
             if validity == 'Y':
                 self._validated_list.append([level, tag, arg])
 
-    def record_family(self) -> None:
-        '''Records the detail of a family'''
 
-        new_family_has_been_created: bool = False
-
-        for start_new_family_record, level, tag, argument, family_record in self.parse_valid_family_record():
-            if start_new_family_record == True:
-                family: Family = Family()
-                family_id: str = argument
-                self._family_dt[family_id] = family
-                family.details(tag, argument)
-                new_family_has_been_created = True
-    
-            elif new_family_has_been_created == True and family_record == True:          
-                family.details(tag,argument)
-
-    def parse_valid_family_record(self) -> Tuple[str]:
-        '''Check if we are dealing with a family record'''
+    def parse_valid_entry(self) -> Tuple[str]:
+        '''Check if we are dealing with a family or individual'''
 
         for valid_line in self._validated_list: 
-            level: str = valid_line[0]
+            level: int = int(valid_line[0])
             tag: str = valid_line[1]
             argument: str = valid_line[2]
-            family_record: bool = self.flag_family_record(tag)
+            yield level, tag, argument
 
-            if level == 0 and tag == 'FAM':
-                start_new_family_record = True
-            else:
-                start_new_family_record = False
 
-            yield start_new_family_record, level, tag, argument, family_record
-
-    def flag_family_record(self, tag: str) -> bool:
-        '''Returns a boolean value that is used to determine if we are in a family record'''
-
-        family_tags: List[str] = ['FAM', 'MARR', 'HUSB', 'WIFE', 'CHIL', 'DIV', 'DATE'] 
-
-        if tag in family_tags:
-            return True
-        else:
-            return False
-
-    def record_individual(self) -> None:
-        '''Creates an instance of a new individual, and records the associated details'''
-
-        new_individual_has_been_created: bool = False
-
-        for start_new_individual_record, level, tag, argument, individual_record in self.parse_valid_individual_record():
-            if start_new_individual_record == True:
+    def parse_validated_gedcom(self) -> None:
+        '''Parses the gedcom entries for individuals and families'''
+        
+        # Default our flags to neither an individual or family
+        individual_record = False
+        family_record = False
+        
+        for level, tag, argument in self.parse_valid_entry():
+            if tag == "INDI":
+                # Subsequent records will define an individual
+                individual_record = True
+                family = False
+                
+                # Since this is the start - Create the Individual!
                 individual: Individual = Individual()
                 individual_id: str = argument
                 self._individual_dt[individual_id] = individual
-                individual.details(tag, argument)
-                new_individual_has_been_created = True
-    
-            elif new_individual_has_been_created == True and individual_record == True:          
-                individual.details(tag,argument)
+                
+            elif tag == "FAM":
+                # Subsequent records will define a family
+                family_record = True
+                individual_record = False
+                
+                # Since this is the start - Create the Family!
+                family: Family = Family()
+                family_id: str = argument
+                self._family_dt[family_id] = family
+                
+            elif tag == "TRLR" or tag == "HEAD":
+                 # this is neither a family or an individual.
+                 family_record = False
+                 individual_record = False
             
-    def parse_valid_individual_record(self) -> Tuple[str]:
-        '''Checks if we are dealing with an individual record'''
-
-        for valid_line in self._validated_list:
-            level: str = valid_line[0]
-            tag: str = valid_line[1]
-            argument: str = valid_line[2]
-            individual_record: bool = self.flag_individual_record(tag)
-
-            if level == 0 and tag == 'INDI':
-                start_new_individual_record = True
-            else:
-                start_new_individual_record = False
-
-            yield start_new_individual_record, level, tag, argument, individual_record
-
-    def flag_individual_record(self, tag: str) -> bool:
-        '''Returns a boolean value that is used to determine if we are in a individual record'''
-
-        individual_tags: List[str] = ['INDI', 'NAME', 'SEX', 'BIRT', 'DEAT', 'FAMC', 'FAMS', 'DATE'] 
-
-        if tag in individual_tags:
-            return True
-        else:
-            return False
+            # Record the details regarding this tag to the appropriate record type.
+            if individual_record:
+                individual.details(tag,argument)
+            elif family_record:
+                family.details(tag,argument)
 
     def print_individuals_pretty(self) -> PrettyTable:
         '''Prints a prettytable containing details for individuals'''
@@ -338,24 +308,43 @@ class GedcomFile:
           
         print(family_pretty_table)
 
+    def family_set_spouse_names(self):
+        for entry in self._family_dt:
+            
+            husband_id = self._family_dt[entry].husband_id
+            try:
+                husband_name = self._individual_dt[husband_id].name
+            except KeyError:
+                husband_name = "Unknown"      
+            self._family_dt[entry].husband_name = husband_name   
+
+            wife_id = self._family_dt[entry].wife_id
+            try:
+                wife_name = self._individual_dt[wife_id].name                    
+            except KeyError:
+                wife_name = "Unknown"  
+                
+            self._family_dt[entry].wife_name = wife_name 
+
+
 
 def main() -> None:
     '''Runs main program'''
 
     # file_name: str = input('Enter GEDCOM file name: ')
-    file_name: str = "p1.txt"
+    file_name: str = "p1.ged"
     # output_file_name: str = input('Enter desired name for the output file: ')
     output_file_name: str = "p1.output"
     
     gedcom: GedcomFile = GedcomFile()
     gedcom.read_file(file_name)
     gedcom.validate_tags_for_output()
-    gedcom.write_to_txt_file(output_file_name)
-    print('Done. Your output file has been created.')
+    #gedcom.write_to_txt_file(output_file_name)
+    #print('Done. Your output file has been created.')
     
     gedcom.update_validated_list()
-    gedcom.record_family()
-    gedcom.record_individual()
+    gedcom.parse_validated_gedcom()
+    gedcom.family_set_spouse_names()
     
     gedcom.print_individuals_pretty()
     gedcom.print_family_pretty()
