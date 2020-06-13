@@ -312,6 +312,55 @@ class GedcomFile:
             self._family_dt[entry].wife_name = wife_name 
 
 
+    def list_large_age_differences(self) -> None:
+        '''US 34: Determine married couples who have an age difference of 2x or more '''      
+        
+        for family in self._family_dt.values():
+            
+            try:
+                husband = self._individual_dt[family.husband_id]
+                wife = self._individual_dt[family.wife_id]
+            except KeyError:
+                #Individual doesn't exist, so skip this family.
+                continue
+
+            if type(husband.age) == str or type(wife.age) == str:
+                # A birthdate was not provided for one of the spouses. Skip this family.
+                continue
+
+            if husband.age > (wife.age * 2):
+                husband_is_older = True
+            elif wife.age > (husband.age * 2):
+                husband_is_older = False
+            else:
+                # No need to report this married couple.
+                continue
+
+            # OK, if we're still here, then we have an Anomaly to report. 
+            print("ANOMALY: US34: FAMILY: %s " %family.id, end='')
+
+            if husband_is_older:
+                print("Name: %s, id: %s, age: %d is more than 2x in age as spouse: %s, id: %s, age: %d" \
+                %(family.husband_name, family.husband_id, husband.age, family.wife_name,  family.wife_id, wife.age ))            
+            else:
+                print("Name: %s, id: %s, age: %d is more than 2x in age as spouse: %s, id: %s, age: %d" \
+                %(family.wife_name, family.wife_id, wife.age, family.husband_name,  family.husband_id, husband.age ))
+
+    def list_recent_births(self)->None:
+        '''US35: List all people in a GEDCOM file who were born in the last 30 days'''
+        for person in self._individual_dt.values():
+            birth_date = person.birth
+            if type(birth_date) != datetime.date:
+                # Invalid entry
+                continue
+            today = datetime.date.today()
+            age_days = (today - birth_date).days  # difference results in datetime.timedelta
+
+            if age_days <= 30:
+                print("RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s" \
+                %(person.name, person.id, age_days, birth_date))
+
+
 
 def main() -> None:
     '''Runs main program'''
@@ -330,6 +379,13 @@ def main() -> None:
     gedcom.print_individuals_pretty()
     gedcom.print_family_pretty()
 
+    # Print out User Story output from hereon
+
+    # US34: List large age differences
+    gedcom.list_large_age_differences()
+
+    # US35: List recent births
+    gedcom.list_recent_births()
 
 if __name__ == '__main__':
     main()
