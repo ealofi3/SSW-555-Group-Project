@@ -1,6 +1,6 @@
 '''The purpose of this program is to identify errors and anomalies in GEDCOM geneology files'''
 
-from typing import Iterator, Tuple, IO, List, Dict
+from typing import Iterator, Tuple, IO, List, Dict, Set
 from collections import defaultdict
 import datetime
 import os
@@ -15,13 +15,12 @@ class Family:
 
         self.id: str = ''
         self.marriage_date: str = ''                         
-        self.divorce_date: str = ''                                 
+        self.divorce_date: str = 'NA'                                 
         self.husband_id: str = ''
         self.husband_name: str = 'TBD'
         self.wife_id: str = ''
         self.wife_name: str = 'TBD'
         self.children: Set[str] = set()
-
         self.preceding_tag_related_to_date: str = ''
 
     def details(self, tag: str, argument: str) -> None:
@@ -66,7 +65,7 @@ class Family:
     def return_pretty_table_row(self) -> List[str]:
         '''Returns a list that is to be used as a row in the families pretty table'''
 
-        return [self.id, self.marriage_date, self.divorce_date, self.husband_id, self.husband_name, self.wife_id, self.wife_name, self.children]
+        return [self.id, self.marriage_date, self.divorce_date, self.husband_id, self.husband_name, self.wife_id, self.wife_name, (self.children or "None")]
 
 
 class Individual:
@@ -84,12 +83,8 @@ class Individual:
         self.age: str = ''
         self.living: str = True
         self.death_date: str = 'NA'
-        # self.child = "TBD"
-        # self.spouse = "TBD"
         self.famc: Set[str] = set()
         self.fams: Set[str] = set()
-        # self.ex_spouses: List[str] = list()
-
         self.preceding_tag_related_to_date: str = ''
 
     def details(self, tag: str, argument: str) -> None:
@@ -137,23 +132,19 @@ class Individual:
         #print(self.name)
         self.setAge()
 
-    def setAge(self): 
+    def setAge(self) -> None: 
         '''Calculates the age of an individual'''
 
         if self.living:
             today = datetime.date.today()
         else:
             today = self.death_date
-        #print("Birthdate: ", self.birth)
-        #print("Deathdate: ", self.death_date)
-        #print("today :", today)
         self.age = (today - self.birth).days//365  #TBD: Not perfect. leap years, etc.
-        #print("Age: ",self.age)
 
     def return_pretty_table_row(self) -> List[str]:
         '''Returns a list that is to be used as a row for the individuals pretty table'''
 
-        return [self.id, self.name, self.sex, self.birth, self.age, self.living, self.death_date, self.famc, self.fams]
+        return [self.id, self.name, self.sex, self.birth, self.age, self.living, self.death_date, (self.famc or "None"), (self.fams or "NA")]
 
 
 class GedcomFile:
@@ -219,18 +210,9 @@ class GedcomFile:
         else:
             arguments: str = f'{line[-1]}'
             self._output.append(f'<-- {level}|{default_tag}|N|{arguments}')
-
-    def write_to_txt_file(self, output_file_name: str) -> None:
-        '''Writes the final formatted input and output lines to a txt file'''
-
-        output_file: IO = open(f'{output_file_name}.txt', 'w')
-
-        with output_file:
-            for input_line, output_line in zip(self._input, self._output):
-                output_file.write(f'--> {input_line}\n{output_line}\n')
         
     def update_validated_list(self) -> None:
-        locallist = list()
+        '''Create a list of validated gedcom entries'''
         for entry in self._output:
             level, tag, validity, arg = entry.split("|")
             level = int(level[-1])
@@ -239,7 +221,7 @@ class GedcomFile:
 
 
     def parse_valid_entry(self) -> Tuple[str]:
-        '''Check if we are dealing with a family or individual'''
+        '''Generator to extract level, tag and argument from validated list'''
 
         for valid_line in self._validated_list: 
             level: int = int(valid_line[0])
@@ -276,7 +258,7 @@ class GedcomFile:
                 family_id: str = argument
                 self._family_dt[family_id] = family
                 
-            elif tag == "TRLR" or tag == "HEAD":
+            elif tag == "TRLR" or tag == "HEAD" or tag == "NOTE":
                  # this is neither a family or an individual.
                  family_record = False
                  individual_record = False
@@ -295,7 +277,9 @@ class GedcomFile:
         for individual in self._individual_dt.values():
             individuals_pretty_table.add_row(individual.return_pretty_table_row())
         
+        print("People")
         print(individuals_pretty_table)
+        print("\n")
 
     def print_family_pretty(self) -> PrettyTable:
         '''Prints a prettytable containing details for individuals'''
@@ -304,8 +288,10 @@ class GedcomFile:
 
         for family in self._family_dt.values():
             family_pretty_table.add_row(family.return_pretty_table_row())
-          
+        
+        print("Families")
         print(family_pretty_table)
+        print("\n")
 
     def family_set_spouse_names(self):
         for entry in self._family_dt:
@@ -332,14 +318,10 @@ def main() -> None:
 
     # file_name: str = input('Enter GEDCOM file name: ')
     file_name: str = "p1.ged"
-    # output_file_name: str = input('Enter desired name for the output file: ')
-    output_file_name: str = "p1.output"
     
     gedcom: GedcomFile = GedcomFile()
     gedcom.read_file(file_name)
     gedcom.validate_tags_for_output()
-    #gedcom.write_to_txt_file(output_file_name)
-    #print('Done. Your output file has been created.')
     
     gedcom.update_validated_list()
     gedcom.parse_validated_gedcom()
