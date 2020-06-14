@@ -17,4 +17,9 @@ class GedcomFileTest(unittest.TestCase):
 
         gedcom: GedcomFile = GedcomFile()
         gedcom.read_file(GedcomFileTest.test_file_name)
+        gedcom.validate_tags_for_output()
+        
+        gedcom.update_validated_list()
+        gedcom.parse_validated_gedcom()
+        gedcom.family_set_spouse_names()
         

@@ -228,7 +228,6 @@ class GedcomFile:
             if validity == 'Y':
                 self._validated_list.append([level, tag, arg])
 
-
     def parse_valid_entry(self) -> Tuple[str]:
         '''Generator to extract level, tag and argument from validated list'''
 
@@ -237,7 +236,6 @@ class GedcomFile:
             tag: str = valid_line[1]
             argument: str = valid_line[2]
             yield level, tag, argument
-
 
     def parse_validated_gedcom(self) -> None:
         '''Parses the gedcom entries for individuals and families'''
@@ -402,6 +400,7 @@ def main() -> None:
     '''Runs main program'''
 
     # file_name: str = input('Enter GEDCOM file name: ')
+    # file_name: str = "sprint_01_test_GEDCOM_file.txt"
     file_name: str = "p1.ged"
     
     gedcom: GedcomFile = GedcomFile()
