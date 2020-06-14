@@ -312,7 +312,7 @@ class GedcomFile:
             self._family_dt[entry].wife_name = wife_name 
 
 
-    def list_large_age_differences(self) -> None:
+    def US34_list_large_age_differences(self) -> None:
         '''US 34: Determine married couples who have an age difference of 2x or more '''      
         
         for family in self._family_dt.values():
@@ -346,7 +346,7 @@ class GedcomFile:
                 print("Name: %s, id: %s, age: %d is more than 2x in age as spouse: %s, id: %s, age: %d" \
                 %(family.wife_name, family.wife_id, wife.age, family.husband_name,  family.husband_id, husband.age ))
 
-    def list_recent_births(self)->None:
+    def US35_list_recent_births(self)->None:
         '''US35: List all people in a GEDCOM file who were born in the last 30 days'''
         for person in self._individual_dt.values():
             birth_date = person.birth
@@ -384,12 +384,8 @@ def main() -> None:
     gedcom.print_family_pretty()
 
     # Print out User Story output from hereon
-
-    # US34: List large age differences
-    gedcom.list_large_age_differences()
-
-    # US35: List recent births
-    gedcom.list_recent_births()
+    gedcom.US34_list_large_age_differences()
+    gedcom.US35_list_recent_births()
 
 if __name__ == '__main__':
     main()

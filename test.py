@@ -9,7 +9,7 @@ import logging
 # Set DEBUG True if you want to see expected/actual values.
 DEBUG = False
 
-class Test_US34(unittest.TestCase):
+class Test_US35(unittest.TestCase):
 
     def setUp(self):
         self.gedcom = SSW555_Group_Project.GedcomFile()
@@ -22,7 +22,6 @@ class Test_US34(unittest.TestCase):
         SSW555_Group_Project.GedcomFile._individual_dt[self.person.id]=self.person
         self.today = datetime.datetime.today()
         self.log = logging.getLogger("Test")
-        #self.log.debug(SSW555_Group_Project.GedcomFile._individual_dt)
 
     def print_testcasedetails(self,expected,actual):
         if DEBUG==True:
@@ -33,10 +32,10 @@ class Test_US34(unittest.TestCase):
 
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_US34_30days(self,mocked_stdout):
+    def test_US35_30days(self,mocked_stdout):
 
         self.person.birth = datetime.datetime.date(self.today - datetime.timedelta(days=30))
-        SSW555_Group_Project.GedcomFile.list_recent_births(self.gedcom)
+        SSW555_Group_Project.GedcomFile.US35_list_recent_births(self.gedcom)
 
         expected = "RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s\n" \
                 %(self.person.name, self.person.id, 30, self.person.birth)
@@ -46,9 +45,9 @@ class Test_US34(unittest.TestCase):
    
     
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_US34_0days(self,mocked_stdout):
+    def test_US35_0days(self,mocked_stdout):
         self.person.birth = datetime.date(self.today.year, self.today.month, self.today.day)       
-        SSW555_Group_Project.GedcomFile.list_recent_births(self.gedcom)
+        SSW555_Group_Project.GedcomFile.US35_list_recent_births(self.gedcom)
         expected = "RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s\n" \
                 %(self.person.name, self.person.id, 0, self.person.birth)
 
@@ -56,10 +55,10 @@ class Test_US34(unittest.TestCase):
         self.print_testcasedetails(expected, mocked_stdout.getvalue())
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_US34_31days(self,mocked_stdout):
+    def test_US35_31days(self,mocked_stdout):
 
         self.person.birth = datetime.datetime.date(self.today - datetime.timedelta(days=31))
-        SSW555_Group_Project.GedcomFile.list_recent_births(self.gedcom)
+        SSW555_Group_Project.GedcomFile.US35_list_recent_births(self.gedcom)
 
         expected = ""
 
@@ -68,10 +67,10 @@ class Test_US34(unittest.TestCase):
 
 
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
-    def test_US34_neg1days(self,mocked_stdout):
+    def test_US35_neg1days(self,mocked_stdout):
 
         self.person.birth = datetime.datetime.date(self.today + datetime.timedelta(days=1))
-        SSW555_Group_Project.GedcomFile.list_recent_births(self.gedcom)
+        SSW555_Group_Project.GedcomFile.US35_list_recent_births(self.gedcom)
 
         expected = ""
 
