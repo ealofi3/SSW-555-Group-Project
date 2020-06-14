@@ -146,6 +146,14 @@ class Individual:
 
         return [self.id, self.name, self.sex, self.birth, self.age, self.living, self.death_date, (self.famc or "None"), (self.fams or "NA")]
 
+    def return_living_and_marital_details(self) -> Tuple[bool, int, str]:
+        '''US30: returns a tuple containing a boolean as the first element, an int as the second element, and the individual's name as the third element.
+            -The boolean is True if individual is living, False if not
+            -The int reflects the # of families this individual has been a spouse of. If 0, the individual is not married. If greter than 0, the individual is married.
+        '''
+
+        return self.name, self.age, self.living, len(self.fams) 
+
 
 class GedcomFile:
     '''class GedcomFile'''
@@ -360,6 +368,33 @@ class GedcomFile:
                 print("RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s" \
                 %(person.name, person.id, age_days, birth_date))
 
+    def list_all_people_living_and_married(self) -> None:
+        '''Prints a prettytable that lists all of the individuals in a GEDCOM file that are living and married'''
+
+        pretty_table_for_living_and_married_people: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
+    
+        for individual_id, individual in self._individual_dt.items():
+            name, age, alive, number_of_times_married = individual.return_living_and_marital_details()
+            
+            if alive == True and number_of_times_married > 0:
+                pretty_table_for_living_and_married_people.add_row([individual_id, name])
+        
+        print(f'All Individuals Living and Married:')
+        print(f'{pretty_table_for_living_and_married_people}\n')
+
+    def list_all_people_over_thirty_and_never_married(self) -> None:
+        '''Prints a prettytable that lists all of the individuals in a GEDCOM file that are living, over 30 years old, and have never been married'''
+
+        pretty_table_for_living_over_thirty_never_married: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
+
+        for individual_id, individual in self._individual_dt.items():
+            name, age, alive, number_of_times_married = individual.return_living_and_marital_details()
+
+            if alive == True and age > 30 and number_of_times_married == 0:
+                pretty_table_for_living_over_thirty_never_married.add_row([individual_id, name])
+        
+        print(f'All Individuals Living, Over 30, and Never Married:')
+        print(pretty_table_for_living_over_thirty_never_married)
 
 
 def main() -> None:
@@ -386,6 +421,12 @@ def main() -> None:
 
     # US35: List recent births
     gedcom.list_recent_births()
+
+    #US30
+    gedcom.list_all_people_living_and_married()
+
+    #US31
+    gedcom.list_all_people_over_thirty_and_never_married()
 
 if __name__ == '__main__':
     main()
