@@ -356,6 +356,10 @@ class GedcomFile:
             today = datetime.date.today()
             age_days = (today - birth_date).days  # difference results in datetime.timedelta
 
+            if age_days < 0:
+                # Invalid birthdays (set in the future!). Skip this individual.
+                continue
+            
             if age_days <= 30:
                 print("RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s" \
                 %(person.name, person.id, age_days, birth_date))
