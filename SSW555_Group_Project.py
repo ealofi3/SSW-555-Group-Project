@@ -313,7 +313,7 @@ class GedcomFile:
 
 
     def US34_list_large_age_differences(self) -> None:
-        '''US 34: Determine married couples who have an age difference of 2x or more '''      
+        '''US 34: List all couples who were married when the older spouse was more than twice as old as the younger spouse '''
         
         for family in self._family_dt.values():
             
@@ -326,6 +326,9 @@ class GedcomFile:
 
             if type(husband.age) == str or type(wife.age) == str:
                 # A birthdate was not provided for one of the spouses. Skip this family.
+                continue
+            elif husband.age < 0 or wife.age < 0:
+                # Invalid age, so skip this family.
                 continue
 
             if husband.age > (wife.age * 2):
