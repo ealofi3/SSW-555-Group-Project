@@ -147,8 +147,9 @@ class Individual:
         return [self.id, self.name, self.sex, self.birth, self.age, self.living, self.death_date, (self.famc or "None"), (self.fams or "NA")]
 
     def return_living_and_marital_details(self) -> Tuple[bool, int, str]:
-        '''US30: returns a tuple containing a boolean as the first element, an int as the second element, and the individual's name as the third element.
-            -The boolean is True if individual is living, False if not
+        '''Implemented for US30 & US31. 
+            Returns a tuple containing: individual's name as the first element, age as second element, a boolean as third element, and an int as the fourth element.
+            -The boolean is True if individual is living, False if not.
             -The int reflects the # of families this individual has been a spouse of. If 0, the individual is not married. If greter than 0, the individual is married.
         '''
 
