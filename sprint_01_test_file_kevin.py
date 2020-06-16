@@ -12,7 +12,7 @@ class GedcomFileTest(unittest.TestCase):
 
     test_file_name: str = 'p1.ged'
 
-    def test_find_all_people_living_and_married(self) -> None:
+    def test_all_people_living_and_married(self) -> None:
         '''Tests that the method correctly identifies all individuals, by ID and name, that are alive and married.
         '''
 
@@ -23,8 +23,9 @@ class GedcomFileTest(unittest.TestCase):
         gedcom.update_validated_list()
         gedcom.parse_validated_gedcom()
         gedcom.family_set_spouse_names()
+        gedcom.parse_individuals_based_on_living_and_marital_details()
         
-        result: Dict[str, str] = gedcom.find_all_people_living_and_married()
+        result: Dict[str, str] = gedcom._individuals_living_and_married
 
         expected: Dict[str, str] = {'@I2@' : 'Sankar /Sam/',
                                     '@I3@' : 'Sunitha /Krish/',
@@ -33,7 +34,7 @@ class GedcomFileTest(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
-    def test_find_all_people_living_over_thirty_and_never_married(self) -> None:
+    def test_all_people_living_over_thirty_and_never_married(self) -> None:
         '''Tests that the method correctly identifies all individuals, by ID and name, that are alive
             over 30 yrs old, and have never been married.
         '''
@@ -45,14 +46,13 @@ class GedcomFileTest(unittest.TestCase):
         gedcom.update_validated_list()
         gedcom.parse_validated_gedcom()
         gedcom.family_set_spouse_names()
+        gedcom.parse_individuals_based_on_living_and_marital_details()
         
-        result: Dict[str, str] = gedcom.find_all_people_living_over_thirty_and_never_married()
-
+        result: Dict[str, str] = gedcom._individuals_living_over_thirty_and_never_married
+        
         expected: Dict[str, str] = {}
 
         self.assertEqual(result, expected)
-
-
 
 
 if __name__ == '__main__':
