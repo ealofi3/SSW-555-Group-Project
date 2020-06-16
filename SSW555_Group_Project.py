@@ -367,40 +367,65 @@ class GedcomFile:
                 print("RECENT BIRTH: US35: Name: %s, Individual: ID %s, born %d days ago! Birthday: %s" \
                 %(person.name, person.id, age_days, birth_date))
 
-    def list_all_people_living_and_married(self) -> None:
-        '''Prints a prettytable that lists all of the individuals in a GEDCOM file that are living and married'''
+    def find_all_people_living_and_married(self) -> Dict[str, str]:
+        '''Finds all of the individuals in a GEDCOM file that are living and married'''
 
-        pretty_table_for_living_and_married_people: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
-    
+        _individuals_living_and_married: Dict[str, str] = dict()
+
         for individual_id, individual in self._individual_dt.items():
             name, age, alive, number_of_times_married = individual.return_living_and_marital_details()
             
             if alive == True and number_of_times_married > 0:
-                pretty_table_for_living_and_married_people.add_row([individual_id, name])
+                _individuals_living_and_married[individual_id] = name
         
-        print(f'All Individuals Living and Married:')
-        print(f'{pretty_table_for_living_and_married_people}\n')
+        return _individuals_living_and_married
 
-    def list_all_people_over_thirty_and_never_married(self) -> None:
-        '''Prints a prettytable that lists all of the individuals in a GEDCOM file that are living, over 30 years old, and have never been married'''
+    def find_all_people_living_over_thirty_and_never_married(self) -> Dict[str, str]:
+        '''Finds all of the individuals in a GEDCOM file that are living, over 30 years old, and have never been married'''
 
-        pretty_table_for_living_over_thirty_never_married: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
+        _individuals_alive_over_thirty_and_never_married: Dict[str, str] = dict()
 
         for individual_id, individual in self._individual_dt.items():
             name, age, alive, number_of_times_married = individual.return_living_and_marital_details()
 
             if alive == True and age > 30 and number_of_times_married == 0:
+                _individuals_alive_over_thirty_and_never_married[individual_id] = name
+        
+        return _individuals_alive_over_thirty_and_never_married
+
+    def list_individuals_living_and_married(self) -> None:
+        '''Prints a prettytable that lists all individuals that are alive and married'''
+
+        pretty_table_for_living_and_married_people: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
+
+        if len(self.find_all_people_living_and_married()) == 0:
+            pretty_table_for_living_and_married_people.add_row(['None', 'None'])
+        
+        else:
+            for individual_id, name in self.find_all_people_living_and_married().items():
+                pretty_table_for_living_and_married_people.add_row([individual_id, name])
+        
+        print(f'All Individuals Living and Married:\n{pretty_table_for_living_and_married_people}\n')
+
+    def list_individuals_living_over_thirty_never_married(self) -> None:
+        '''Prints a prettytable that lists all individuals that are alive, over 30 yrs old, and have never been married'''
+
+        pretty_table_for_living_over_thirty_never_married: PrettyTable = PrettyTable(field_names=['ID', 'Name'])
+
+        if len(self.find_all_people_living_over_thirty_and_never_married()) == 0:
+            pretty_table_for_living_over_thirty_never_married.add_row(['None', 'None'])
+        
+        else:
+            for individual_id, name in self.find_all_people_living_over_thirty_and_never_married().items():
                 pretty_table_for_living_over_thirty_never_married.add_row([individual_id, name])
         
-        print(f'All Individuals Living, Over 30, and Never Married:')
-        print(pretty_table_for_living_over_thirty_never_married)
+        print(f'All Individuals Living, Over 30, and Never Married:\n{pretty_table_for_living_over_thirty_never_married}\n')
 
 
 def main() -> None:
     '''Runs main program'''
 
     # file_name: str = input('Enter GEDCOM file name: ')
-    # file_name: str = "sprint_01_test_GEDCOM_file.txt"
     file_name: str = "p1.ged"
     
     gedcom: GedcomFile = GedcomFile()
@@ -423,10 +448,12 @@ def main() -> None:
     gedcom.list_recent_births()
 
     #US30
-    gedcom.list_all_people_living_and_married()
+    gedcom.find_all_people_living_and_married()
+    gedcom.list_individuals_living_and_married()
 
     #US31
-    gedcom.list_all_people_over_thirty_and_never_married()
+    gedcom.find_all_people_living_over_thirty_and_never_married()
+    gedcom.list_individuals_living_over_thirty_never_married()
 
 if __name__ == '__main__':
     main()
