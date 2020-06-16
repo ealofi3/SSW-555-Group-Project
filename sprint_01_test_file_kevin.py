@@ -5,9 +5,9 @@ import unittest
 from typing import IO, Dict
 
 class GedcomFileTest(unittest.TestCase):
-    '''Tests the methods implemented for US30 & US31:
-        -find_all_people_living_and_married
-        -find_all_people_living_over_thirty_and_never_married
+    '''Tests that the method implemented for US30 & US31:
+        -Identifies all people that are living and married
+        -Identifies all people that are living, over 30 yrs old, & have never been married
     '''
 
     test_file_name: str = 'p1.ged'
