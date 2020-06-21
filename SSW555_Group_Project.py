@@ -333,11 +333,11 @@ class GedcomFile:
         for fm in self._family_dt.values():
             if fm.husband_id != 'NA' and fm.wife_id != 'NA':
                 if self._individual_dt[fm.husband_id].sex!= "M" or self._individual_dt[fm.wife_id].sex != "F":
-                    print(f"ANOMALY: US21: FAMILY:<{fm.family_id}> The role is not correct ")
-                    r.append(f"ANOMALY: US21: FAMILY:<{fm.family_id}> The role is not correct ")
+                    print(f"ANOMALY: US21: FAMILY:<{fm.family_id}> Couples' roles are not correct ")
+                    r.append(f"ANOMALY: US21: FAMILY:<{fm.family_id}> Couples' roles are role is not correct ")
             else:
-                print(f"ANOMALY: US21: FAMILY:<{fm.family_id}> The role are the same cannot compare ")
-                r.append(f"ANOMALY: US21: FAMILY:<{fm.family_id}> The role are the same cannot compare ")
+                print(f"ANOMALY: US21: FAMILY:<{fm.family_id}> Couples' roles are the same cannot compare ")
+                r.append(f"ANOMALY: US21: FAMILY:<{fm.family_id}> Couples' role are the same cannot compare ")
         return r
  
 
